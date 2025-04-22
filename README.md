@@ -1,2 +1,0 @@
-# SmartMeds-AI Demo
-此專案為智藥照護小幫手，串接 Google Sheets 進行用藥風險與藥師多人審核紀錄。
