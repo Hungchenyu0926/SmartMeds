@@ -27,30 +27,5 @@ query = st.text_input("🔍 搜尋藥品名稱")
 if query:
     filtered = df[df["藥品名稱"].str.contains(query, case=False, na=False)]
     st.dataframe(filtered)
-import openai
-import streamlit as st
 
-openai.api_key = st.secrets["OPENAI"]["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"]
-
-def get_drug_advice(drug_name, age=None, condition=None):
-    prompt = f"""
-你是一位藥師。請提供藥品「{drug_name}」的基本資訊、常見用途、副作用，並針對年齡 {age} 歲、有「{condition}」病史的病人提供注意事項與劑量建議。
-"""
-
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3,
-    )
-    return response["choices"][0]["message"]["content"]
-
-# Streamlit 互動
-st.title("用藥建議小幫手")
-drug = st.text_input("請輸入藥品名稱")
-age = st.number_input("年齡", min_value=1, step=1)
-condition = st.text_input("既往病史 / 疾病")
-
-if st.button("查詢建議") and drug:
-    result = get_drug_advice(drug, age, condition)
-    st.markdown(result)
 
