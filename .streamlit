@@ -1,0 +1,10 @@
+GSPREAD_CREDENTIALS = """
+{
+  "type": "service_account",
+  "project_id": "smartmeds-project",
+  "private_key_id": "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9",
+  "private_key": "-----BEGIN PRIVATE KEY-----\\nMIIEv...\\n-----END PRIVATE KEY-----\\n",
+  "client_email": "streamlit-smartmeds@project-id.iam.gserviceaccount.com",
+  ...
+}
+"""
