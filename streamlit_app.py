@@ -7,14 +7,14 @@ import openai
 import datetime
 
 # --- 配置 ---
-# 取得 OpenAI API Key，支援兩種 Secrets 格式
+# 取得 OpenAI API Key
 openai_key = None
 if 'openai' in st.secrets and 'api_key' in st.secrets['openai']:
     openai_key = st.secrets['openai']['api_key']
 elif 'openai_api_key' in st.secrets:
     openai_key = st.secrets['openai_api_key']
 if not openai_key:
-    st.error("錯誤：未設定 OpenAI API Key。請於 Streamlit Cloud Secrets 中新增 `openai_api_key` 或 `[openai] api_key`。")
+    st.error("錯誤：未設定 OpenAI API Key。請於 Streamlit Cloud Secrets 中新增 openai_api_key 或 [openai] api_key。")
     st.stop()
 openai.api_key = openai_key
 
@@ -26,14 +26,34 @@ st.markdown("系統自動偵測老年人用藥風險與交互作用，並可由�
 # --- Google Sheets 連線 ---
 @st.cache_resource
 def connect_to_sheet():
+    # 範圍設定
     scope = [
         'https://spreadsheets.google.com/feeds',
         'https://www.googleapis.com/auth/drive'
     ]
-    creds_dict = json.loads(st.secrets['google_sheets']['credentials'])
+    # 讀取 Secrets
+    creds_raw = st.secrets['google_sheets'].get('credentials', '').strip()
+    if not creds_raw:
+        st.error("錯誤：未設定 Google Sheets credentials。請於 Secrets 中填入 credentials。")
+        st.stop()
+    try:
+        creds_dict = json.loads(creds_raw)
+    except json.JSONDecodeError:
+        st.error("錯誤：Google Sheets credentials 不是有效的 JSON。請檢查 Secrets 中 credentials 格式。")
+        st.stop()
+    # 驗證 sheet_name
+    sheet_name = st.secrets['google_sheets'].get('sheet_name', '').strip()
+    if not sheet_name:
+        st.error("錯誤：未設定 Google Sheets sheet_name。請於 Secrets 中填入 sheet_name。")
+        st.stop()
+    # 建立客戶端並打開工作表
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-    sheet = client.open(st.secrets['google_sheets']['sheet_name']).sheet1
+    try:
+        sheet = client.open(sheet_name).sheet1
+    except Exception as e:
+        st.error(f"錯誤：無法開啟試算表 '{sheet_name}'。請確認 service account 已有編輯權限。詳情：{e}")
+        st.stop()
     return sheet
 
 # --- 讀取 Google Sheets 資料 ---
@@ -112,8 +132,8 @@ col1, col2 = st.columns([2,3])
 with col1:
     selected = st.selectbox('選擇住民進行審核：', df['姓名'])
     review_data = df[df['姓名']==selected].iloc[0]
-    st.markdown(f"**基本資料**：{review_data['姓名']}，{review_data['年齡']}歲，疾病：{review_data['疾病']}")
-    st.markdown(f"**用藥清單**：{','.join(review_data['藥品名稱'])}")
+    st.markdown(f"**基本資料**：{review_data['姓名']}，{review_data['年齡']}歲，疾病：{review_data['疾病']}  ")
+    st.markdown(f"**用藥清單**：{','.join(review_data['藥品名稱'])}  ")
     st.markdown(f"**AI 判定風險**：{review_data['用藥風險']}  ")
     st.markdown(f"**AI 交互作用**：{review_data['可能交互作用']}  ")
 with col2:
@@ -134,22 +154,8 @@ with col2:
 # 4. 側邊欄篩選
 with st.sidebar:
     st.header('🔍 篩選條件')
-    show_inter = st.checkbox('僅顯示有交互作用的住民')
+    show_inter = st.checkb
 
-# 5. 顯示報表
-if show_inter:
-    disp = df[df['可能交互作用'].str.strip()!='']
-else:
-    disp = df
-report = disp.copy()
-report['藥品名稱'] = report['藥品名稱'].apply(lambda x: ','.join(x))
-
-st.subheader('📋 綜合報表（含審核結果）')
-st.dataframe(report)
-
-# 6. 匯出 CSV
-csv = report.to_csv(index=False).encode('utf-8-sig')
-st.download_button('📤 匯出報表 (CSV)', csv, 'smartmeds_full_report.csv', 'text/csv')
 
 
 
