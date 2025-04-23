@@ -2,30 +2,43 @@ import streamlit as st
 import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+import json
+import datetime
 
-st.title("💊 SmartMeds-AI 藥品照護小幫手")
+# --- 1. 連線 Google Sheets ---
+@st.cache_resource
+def connect_to_sheet():
+    scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
+    creds_dict = json.loads(st.secrets["google_sheets"]["credentials"])
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    client = gspread.authorize(creds)
+    sheet = client.open(st.secrets["google_sheets"]["sheet_name"]).sheet1
+    return sheet
 
-# Google Sheets 認證
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["GSPREAD_CREDENTIALS"], scope)
-client = gspread.authorize(creds)
+# --- 2. 其餘程式保持不變，只是在提交時呼叫 append_review_to_sheet ---
+def append_review_to_sheet(sheet, review_data: dict):
+    row = [
+        review_data['姓名'],
+        review_data['年齡'],
+        review_data['疾病'],
+        '、'.join(review_data['用藥']),
+        review_data['用藥風險'],
+        review_data['藥師名稱'],
+        review_data['藥師風險判讀'],
+        review_data['是否同意AI'],
+        review_data['修正意見'],
+        datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    ]
+    sheet.append_row(row)
 
-# 讀取 Google Sheets
-SHEET_NAME = "SmartMeds_DB"
-worksheet = client.open(SHEET_NAME).sheet1
+# … 介面與互動程式碼 …
+if st.button("✅ 提交審核紀錄"):
+    # … 更新本地 df …
+    review_dict = df[df['姓名'] == selected_row].iloc[0].to_dict()
+    review_dict['藥師名稱'] = pharmacist_name
+    sheet = connect_to_sheet()
+    append_review_to_sheet(sheet, review_dict)
+    st.success("審核結果已同步至 Google Sheets")
 
-# 轉換為 pandas dataframe
-data = worksheet.get_all_records()
-df = pd.DataFrame(data)
-
-# 顯示資料
-st.subheader("📋 最新照護用藥資料")
-st.dataframe(df)
-
-# 簡單搜尋功能
-query = st.text_input("🔍 搜尋藥品名稱")
-if query:
-    filtered = df[df["藥品名稱"].str.contains(query, case=False, na=False)]
-    st.dataframe(filtered)
 
 
