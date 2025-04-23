@@ -15,23 +15,31 @@ if not openai_key:
 openai.api_key = openai_key
 
 # 取得並解析 Google Sheets 憑證
-creds_raw = st.secrets.get('google_sheets', {}).get('credentials', '').strip()
+creds_raw = st.secrets.get('google_sheets', {}).get('credentials', '')
+# 提示：credentials 必須是有效的 JSON，使用三重引號並無多餘縮排或空格
 if not creds_raw:
-    st.error("錯誤：未設定 Google Sheets credentials。請於 Secrets 中填入 credentials。")
+    st.error("錯誤：未設定 Google Sheets credentials。請於 Secrets 中填入 credentials。示例：
+```toml
+[google_sheets]
+credentials = '''{"type":"service_account","project_id":"...","private_key_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n","client_email":"...","client_id":"...","auth_uri":"...","token_uri":"...","auth_provider_x509_cert_url":"...","client_x509_cert_url":"..."}'''```
+請注意：1) 三重引號不應有額外縮排；2) private_key 換行以雙斜線+`n`表示。")
     st.stop()
 try:
     creds_dict = json.loads(creds_raw)
-except json.JSONDecodeError:
-    st.error("錯誤：Google Sheets credentials 不是有效的 JSON。請檢查 Secrets 中 credentials 格式。")
+except json.JSONDecodeError as e:
+    st.error(f"錯誤：Google Sheets credentials JSON 解析失敗。請檢查格式與轉義：{e}")
     st.stop()
 
 # 取得試算表名稱
 sheet_name = st.secrets.get('google_sheets', {}).get('sheet_name', '').strip()
 if not sheet_name:
-    st.error("錯誤：未設定 Google Sheets sheet_name。請於 Secrets 中填入 sheet_name。")
+    st.error("錯誤：未設定 Google Sheets sheet_name。請於 Secrets 中填入 sheet_name，例如：`sheet_name = \"SmartMeds_DB\"`。")
     st.stop()
 
 # --- Streamlit 頁面設定 ---
+st.set_page_config(page_title="智藥照護小幫手 v2", layout="wide")
+st.title("🧠 智藥照護小幫手 SmartMeds-AI v2")
+st.markdown("系統自動偵測並同步老年人用藥風險與交互作用，支援藥師審核並自動上傳至 Google Sheets。")
 st.set_page_config(page_title="智藥照護小幫手 v2", layout="wide")
 st.title("🧠 智藥照護小幫手 SmartMeds-AI v2")
 st.markdown("系統自動偵測並同步老年人用藥風險與交互作用，支援藥師審核並自動上傳至 Google Sheets。")
