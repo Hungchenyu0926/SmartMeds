@@ -7,7 +7,16 @@ import openai
 import datetime
 
 # --- 配置 ---
-openai.api_key = st.secrets['openai']['api_key']
+# 取得 OpenAI API Key，支援兩種 Secrets 格式
+openai_key = None
+if 'openai' in st.secrets and 'api_key' in st.secrets['openai']:
+    openai_key = st.secrets['openai']['api_key']
+elif 'openai_api_key' in st.secrets:
+    openai_key = st.secrets['openai_api_key']
+if not openai_key:
+    st.error("錯誤：未設定 OpenAI API Key。請於 Streamlit Cloud Secrets 中新增 `openai_api_key` 或 `[openai] api_key`。")
+    st.stop()
+openai.api_key = openai_key
 
 # Streamlit 頁面設定
 st.set_page_config(page_title="智藥照護小幫手 v2", layout="wide")
@@ -54,9 +63,8 @@ def append_to_sheet(row_dict: dict):
         row_dict.get('審核藥師',''),
         row_dict.get('藥師風險判讀',''),
         row_dict.get('修正意見',''),
-        row_dict.get('審核時間', '')
+        row_dict.get('審核時間','')
     ]
-    # 將新的一行審核記錄 append
     sheet.append_row(row)
 
 # --- OpenAI 計算風險與交互作用 ---
@@ -84,7 +92,6 @@ def gen_interactions(meds: list) -> str:
 
 # --- 主程式 ---
 # 1. 載入資料
-
 df = load_data()
 # 確保 AI 欄位存在
 for col in ['用藥風險','可能交互作用']:
@@ -143,6 +150,7 @@ st.dataframe(report)
 # 6. 匯出 CSV
 csv = report.to_csv(index=False).encode('utf-8-sig')
 st.download_button('📤 匯出報表 (CSV)', csv, 'smartmeds_full_report.csv', 'text/csv')
+
 
 
 
