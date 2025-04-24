@@ -3,7 +3,7 @@ import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-st.title("💊 SmartMeds-AI 個案用藥紀錄")
+st.title("💊 個案用藥紀錄")
 
 # Google Sheets 認證
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
