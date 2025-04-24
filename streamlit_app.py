@@ -25,5 +25,5 @@ st.dataframe(df)
 # 簡單搜尋功能
 query = st.text_input("🔍 搜尋藥品名稱")
 if query:
-    filtered = df[df["藥品名稱"].str.contains(query, case=False, na=False)]
+    filtered = df[df["目前用藥"].str.contains(query, case=False, na=False)]
     st.dataframe(filtered)
